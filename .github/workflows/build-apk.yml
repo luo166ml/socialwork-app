@@ -1,240 +1,90 @@
-name: 编译社工站 APK
+name: 编译社工站 APK（极简版·免 SDK 下载）
 
-on:
+trigger:
   workflow_dispatch:
     inputs:
-      edition:
-        description: 要编译哪个版本
+      variant:
+        description: '选择要编译的版本'
         required: true
-        default: team
+        default: 'team'
         type: choice
-        options: [team, personal]
-  push:
-    branches: [main, master]
+        options:
+          - team
+          - personal
+      version_name:
+        description: '版本号（可选，默认 1.0）'
+        required: false
+        default: '1.0'
 
 jobs:
   build:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      actions: write
     steps:
-      - uses: actions/checkout@v4
+      - name: ① 拉取源码
+        uses: actions/checkout@v4
 
-      - name: 缓存 Gradle
-        uses: actions/cache@v4
+      - name: ② 准备 JDK 17
+        uses: actions/setup-java@v5
         with:
-          path: |
-            ~/.gradle/caches
-            ~/.gradle/wrapper
-          key: gradle-${{ runner.os }}-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
-          restore-keys: gradle-${{ runner.os }}-
-
-      - name: 设置 JDK 17
-        uses: actions/setup-java@v4
-        with:
-          distribution: temurin
+          distribution: 'temurin'
           java-version: '17'
 
-      - name: 准备 Android SDK
-        uses: android-actions/setup-android@v3
-
-      - name: 安装编译工具
+      - name: ③ 生成原生安卓工程
         run: |
-          yes | sdkmanager --sdk_root=$ANDROID_HOME --licenses >/dev/null 2>&1 || true
-          sdkmanager --sdk_root=$ANDROID_HOME \
-            "platform-tools" \
-            "platforms;android-33" \
-            "build-tools;33.0.2"
-
-      - name: 生成原生工程（含手机框架）
-        run: |
-          mkdir -p android/app/src/main/assets
-          mkdir -p android/app/src/main/res/values
-          mkdir -p android/app/src/main/res/mipmap-anydpi-v26
-          mkdir -p android/app/src/main/res/xml
-          mkdir -p android/gradle/wrapper
-
-          EDITION="${{ github.event.inputs.edition || 'team' }}"
-          if [ "$EDITION" = "personal" ]; then
-            cp build_personal.html android/app/src/main/assets/index.html
-          else
-            cp build_team.html android/app/src/main/assets/index.html
+          set -e
+          VARIANT="${{ inputs.variant }}"
+          if [ "$VARIANT" = "team" ]; then HTML="build_team.html"; else HTML="build_personal.html"; fi
+          if [ ! -f "$HTML" ]; then
+            echo "::error::仓库根目录未找到 $HTML，请确认已上传"
+            exit 1
           fi
-          echo "编译版本：$EDITION"
+          mkdir -p native/assets native/gen
+          cp "$HTML" native/assets/index.html
+          echo "$VARIANT" > native/gen/variant.txt
+          echo "${{ inputs.version_name }}" > native/gen/version.txt
+          chmod +x native/build.sh
+          ./native/build.sh
 
-          cat > android/app/src/main/AndroidManifest.xml <<'XML'
-          <?xml version="1.0" encoding="utf-8"?>
-          <manifest xmlns:android="http://schemas.android.com/apk/res/android">
-              <application
-                  android:label="白仓镇民政社工站"
-                  android:icon="@mipmap/ic_launcher"
-                  android:supportsRtl="true"
-                  android:hardwareAccelerated="true"
-                  android:theme="@android:style/Theme.NoTitleBar.Fullscreen">
-                  <activity
-                      android:name=".MainActivity"
-                      android:exported="true"
-                      android:configChanges="orientation|screenSize|keyboardHidden|screenLayout"
-                      android:windowSoftInputMode="adjustResize">
-                      <intent-filter>
-                          <action android:name="android.intent.action.MAIN" />
-                          <category android:name="android.intent.category.LAUNCHER" />
-                      </intent-filter>
-                  </activity>
-              </application>
-          </manifest>
-          XML
-
-          mkdir -p android/app/src/main/java/com/socialwork
-          cat > android/app/src/main/java/com/socialwork/MainActivity.java <<'JAVA'
-          package com.socialwork;
-          import android.app.Activity;
-          import android.os.Bundle;
-          import android.webkit.WebSettings;
-          import android.webkit.WebView;
-          import android.webkit.WebViewClient;
-          import android.graphics.Color;
-          import android.view.Window;
-          import android.view.WindowManager;
-          public class MainActivity extends Activity {
-              private WebView wv;
-              @Override
-              protected void onCreate(Bundle savedInstanceState) {
-                  super.onCreate(savedInstanceState);
-                  requestWindowFeature(Window.FEATURE_NO_TITLE);
-                  getWindow().setFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN,
-                          WindowManager.LayoutParams.FLAG_FULLSCREEN);
-                  wv = new WebView(this);
-                  WebSettings s = wv.getSettings();
-                  s.setJavaScriptEnabled(true);
-                  s.setDomStorageEnabled(true);
-                  s.setDatabaseEnabled(true);
-                  s.setLoadWithOverviewMode(true);
-                  s.setUseWideViewPort(true);
-                  s.setSupportZoom(false);
-                  s.setBuiltInZoomControls(false);
-                  s.setCacheMode(WebSettings.LOAD_DEFAULT);
-                  s.setMediaPlaybackRequiresUserGesture(false);
-                  wv.setWebViewClient(new WebViewClient());
-                  wv.setBackgroundColor(Color.WHITE);
-                  setContentView(wv);
-                  wv.loadUrl("file:///android_asset/index.html");
-              }
-              @Override
-              public void onBackPressed() {
-                  if (wv != null && wv.canGoBack()) wv.goBack();
-                  else super.onBackPressed();
-              }
-          }
-          JAVA
-
-          cat > android/app/build.gradle <<'GRADLE'
-          plugins { id 'com.android.application' }
-          android {
-              namespace 'com.socialwork'
-              compileSdk 33
-              defaultConfig {
-                  applicationId "com.socialwork.station"
-                  minSdk 21
-                  targetSdk 33
-                  versionCode 2
-                  versionName "1.16"
-              }
-              buildTypes {
-                  release { minifyEnabled false }
-              }
-              compileOptions {
-                  sourceCompatibility JavaVersion.VERSION_17
-                  targetCompatibility JavaVersion.VERSION_17
-              }
-          }
-          GRADLE
-
-          cat > android/build.gradle <<'GRADLE'
-          buildscript {
-              repositories { google(); mavenCentral() }
-              dependencies { classpath 'com.android.tools.build:gradle:8.1.4' }
-          }
-          allprojects {
-              repositories { google(); mavenCentral() }
-          }
-          GRADLE
-
-          cat > android/settings.gradle <<'GRADLE'
-          pluginManagement {
-              repositories { google(); mavenCentral(); gradlePluginPortal() }
-          }
-          dependencyResolutionManagement {
-              repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
-              repositories { google(); mavenCentral() }
-          }
-          rootProject.name = "SocialWorkStation"
-          include ':app'
-          GRADLE
-
-          echo "org.gradle.jvmargs=-Xmx2048m -Dfile.encoding=UTF-8" > android/gradle.properties
-          echo "android.useAndroidX=true" >> android/gradle.properties
-
-          cat > android/gradle/wrapper/gradle-wrapper.properties <<'PROP'
-          distributionBase=GRADLE_USER_HOME
-          distributionPath=wrapper/dists
-          distributionUrl=https\://services.gradle.org/distributions/gradle-8.4-bin.zip
-          zipStoreBase=GRADLE_USER_HOME
-          zipStorePath=wrapper/dists
-          PROP
-
-          echo '<?xml version="1.0" encoding="utf-8"?><resources><string name="app_name">白仓镇民政社工站</string></resources>' \
-            > android/app/src/main/res/values/strings.xml
-
-          cat > android/app/src/main/res/mipmap-anydpi-v26/ic_launcher.xml <<'XML'
-          <?xml version="1.0" encoding="utf-8"?>
-          <adaptive-icon xmlns:android="http://schemas.android.com/apk/res/android">
-              <background android:drawable="@drawable/ic_launcher_background" />
-              <foreground android:drawable="@drawable/ic_launcher_foreground" />
-          </adaptive-icon>
-          XML
-          cp android/app/src/main/res/mipmap-anydpi-v26/ic_launcher.xml \
-             android/app/src/main/res/mipmap-anydpi-v26/ic_launcher_round.xml
-
-          mkdir -p android/app/src/main/res/drawable
-          echo '<?xml version="1.0" encoding="utf-8"?><shape xmlns:android="http://schemas.android.com/apk/res/android" android:shape="rectangle"><solid android:color="#2E7D5B"/><corners android:radius="20dp"/></shape>' \
-            > android/app/src/main/res/drawable/ic_launcher_background.xml
-          echo '<?xml version="1.0" encoding="utf-8"?><vector xmlns:android="http://schemas.android.com/apk/res/android" android:width="108dp" android:height="108dp" android:viewportWidth="108" android:viewportHeight="108"><path android:fillColor="#FFFFFF" android:pathData="M54,30 C45,30 38,37 38,46 C38,55 54,78 54,78 C54,78 70,55 70,46 C70,37 63,30 54,30 Z"/><path android:fillColor="#FFFFFF" android:pathData="M48,50 L52,54 L61,43" android:strokeColor="#2E7D5B" android:strokeWidth="4" android:strokeLineCap="round" android:strokeLineJoin="round"/></vector>' \
-            > android/app/src/main/res/drawable/ic_launcher_foreground.xml
-
-          echo '<?xml version="1.0" encoding="utf-8"?><network-security-config><base-config cleartextTrafficPermitted="true"><trust-anchors><certificates src="system"/></trust-anchors></base-config></network-security-config>' \
-            > android/app/src/main/res/xml/network_security_config.xml
-
-      - name: 校验源码关键改动
+      - name: ④ 编译 APK
         run: |
-          SRC="$([ "${{ github.event.inputs.edition || 'team' }}" = "personal" ] && echo build_personal.html || echo build_team.html)"
-          echo "检查文件：$SRC"
-          for kw in "编辑人员" "coteam" "coteam_roles" "editCoTeam" "协同服务配置"; do
-            grep -q "$kw" "$SRC" && echo "  OK   $kw" || echo "  MISS $kw"
-          done
-          echo "站点残留（应无输出）："
-          grep -c "站点详情\|覆盖 4 个站点" "$SRC" || true
+          set -e
+          cd native
+          if [ -x ./gradlew ]; then
+            ./gradlew assembleRelease
+          else
+            echo "::warning::未检测到 gradlew，改用 apkbuilder 直接打包"
+            ./apk_pack.sh
+          fi
+          cd ..
 
-      - name: 编译 APK
-        working-directory: android
+      - name: ⑤ 签名
         run: |
-          gradle wrapper --gradle-version 8.4
-          ./gradlew assembleRelease --no-daemon
+          set -e
+          cd native
+          if [ -n "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" ]; then
+            echo "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" | base64 -d > keystore.jks
+            $ANDROID_HOME/build-tools/$(ls $ANDROID_HOME/build-tools | sort -V | tail -1)/apksigner sign \
+              --ks keystore.jks \
+              --ks-pass pass:"${{ secrets.KEYSTORE_PASSWORD }}" \
+              --key-pass pass:"${{ secrets.KEY_PASSWORD }}" \
+              --ks-key-alias "${{ secrets.KEY_ALIAS }}" \
+              --min-sdk-version 21 \
+              --out app/build/outputs/apk/release/signed.apk \
+              app/build/outputs/apk/release/app-release-unsigned.apk
+            mv app/build/outputs/apk/release/signed.apk "白仓镇民政社工站_${{ inputs.variant }}版.apk"
+          else
+            echo "::notice::未配置签名密钥，使用 debug 签名（仅用于内测）"
+            cp app/build/outputs/apk/debug/app-debug.apk "白仓镇民政社工站_${{ inputs.variant }}版.apk"
+          fi
+          cd ..
+          ls -lh "白仓镇民政社工站_${{ inputs.variant }}版.apk"
 
-      - name: 签名 APK
-        run: |
-          cp android/app/build/outputs/apk/release/app-release-unsigned.apk raw.apk
-          keytool -genkeypair -v -keystore keystore.jks -storepass 123456 \
-                  -keypass 123456 -alias socialwork -keyalg RSA -keysize 2048 \
-                  -validity 10000 -dname "CN=SocialWork, OU=Station, O=Baicang" 2>/dev/null
-          $ANDROID_HOME/build-tools/33.0.2/apksigner sign --ks keystore.jks \
-              --ks-pass pass:123456 --min-sdk-version 21 --out signed.apk raw.apk
-          EDITION="${{ github.event.inputs.edition || 'team' }}"
-          OUT="白仓镇民政社工站_${EDITION}版.apk"
-          cp signed.apk "$OUT"
-          echo "OUT_NAME=$OUT" >> $GITHUB_ENV
-
-      - name: 上传产物
+      - name: ⑥ 上传成品
         uses: actions/upload-artifact@v4
         with:
-          name: ${{ env.OUT_NAME }}
-          path: ${{ env.OUT_NAME }}
-          retention-days: 90
+          name: 白仓镇民政社工站_${{ inputs.variant }}版
+          path: 白仓镇民政社工站_${{ inputs.variant }}版.apk
+          retention-days: 30
