@@ -1,0 +1,42 @@
+name: 编译社工站 APK（极简版）
+
+on:
+  workflow_dispatch:
+    inputs:
+      variant:
+        description: '选择版本'
+        required: true
+        default: 'team'
+        type: choice
+        options: [team, personal]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: 准备 JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: 生成原生工程
+        run: |
+          VARIANT="${{ inputs.variant }}"
+          if [ "$VARIANT" = "team" ]; then HTML="build_team.html"; else HTML="build_personal.html"; fi
+          cp "$HTML" index.html
+          chmod +x build_native.sh
+          ./build_native.sh
+
+      - name: 编译与签名
+        run: |
+          cd android
+          chmod +x gradlew || true
+          ./gradlew assembleRelease || ./gradlew assembleDebug
+          cd ..
+          # 签名（用仓库 Secrets 里的证书，或生成临时证书）
+          # ...（签名脚本见附件）
