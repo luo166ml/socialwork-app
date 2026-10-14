@@ -1,0 +1,403 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>账号配置器 · 社工资助</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",sans-serif;
+background:#F4F6F8;color:#1B2330;line-height:1.65;padding:0 0 70px;font-size:14px}
+.top{background:linear-gradient(135deg,#0E9F6E,#0B8058);color:#fff;padding:22px 18px 20px}
+.top h1{font-size:20px;margin-bottom:4px}
+.top p{font-size:12.5px;opacity:.92}
+.wrap{max-width:900px;margin:0 auto;padding:0 14px}
+.box{background:#fff;border-radius:15px;padding:17px 18px;margin-top:15px;
+box-shadow:0 2px 13px rgba(20,35,60,.07)}
+.box h2{font-size:15.5px;margin-bottom:4px;display:flex;align-items:center;gap:8px}
+.sn{width:24px;height:24px;border-radius:8px;background:#0E9F6E;color:#fff;font-size:13px;
+display:flex;align-items:center;justify-content:center;font-weight:700;flex:0 0 24px}
+.box .d{font-size:12.5px;color:#79859A;margin:0 0 12px 32px}
+label{font-size:12.5px;color:#5A6675;display:block;margin-bottom:4px;font-weight:600}
+input,select{width:100%;padding:9px 11px;border:1px solid #D6DDE6;border-radius:9px;
+font-size:13.5px;font-family:inherit;background:#fff;color:#1B2330}
+input:focus,select:focus{outline:none;border-color:#0E9F6E}
+.row{display:flex;gap:10px;margin-bottom:11px}
+.row>div{flex:1}
+.file{border:2px dashed #9AA5B4;border-radius:12px;padding:20px;text-align:center;
+background:#FAFBFC;cursor:pointer;transition:.15s}
+.file:hover{border-color:#0E9F6E;background:#E7F7F0}
+.file.on{border-color:#0E9F6E;background:#E7F7F0}
+.file .ic{font-size:26px;color:#9AA5B4}
+.file.on .ic{color:#0E9F6E}
+table{width:100%;border-collapse:collapse;font-size:13px;margin-top:6px}
+th{font-size:11.5px;color:#79859A;text-align:left;padding:6px 5px;font-weight:600}
+td{padding:4px 3px}
+td input,td select{padding:7px 8px;font-size:12.5px}
+.del{width:30px;height:30px;border:none;background:#FFEBE9;color:#F5483B;border-radius:8px;
+cursor:pointer;font-size:15px;line-height:1}
+.add{margin-top:9px;background:#fff;border:1px dashed #0E9F6E;color:#0E9F6E;padding:9px 16px;
+border-radius:9px;cursor:pointer;font-size:13px;font-weight:600;font-family:inherit}
+.btn{background:#0E9F6E;color:#fff;padding:12px 24px;border:none;border-radius:11px;
+font-size:15px;font-weight:700;cursor:pointer;font-family:inherit;margin-top:14px}
+.btn:disabled{background:#C6CEDA;cursor:not-allowed}
+.btn.gray{background:#fff;color:#5A6675;border:1px solid #D6DDE6}
+.chk{display:flex;gap:10px;align-items:flex-start;padding:10px 12px;background:#F8F9FB;
+border-radius:10px;margin-bottom:9px;cursor:pointer}
+.chk input{width:17px;height:17px;margin-top:2px;flex:0 0 17px;accent-color:#0E9F6E}
+.chk .t{font-size:13.5px;font-weight:600}
+.chk .s{font-size:12px;color:#79859A;margin-top:2px}
+.warn{background:#FFF3E9;border-left:3px solid #FF8A3D;padding:11px 13px;border-radius:0 9px 9px 0;
+font-size:12.5px;color:#8A5A20;margin-top:12px;line-height:1.7}
+.danger{background:#FFEBE9;border-left:3px solid #F5483B;padding:11px 13px;border-radius:0 9px 9px 0;
+font-size:12.5px;color:#B33126;margin-top:12px;line-height:1.7}
+.ok{background:#E7F7F0;border-left:3px solid #0E9F6E;padding:11px 13px;border-radius:0 9px 9px 0;
+font-size:12.5px;color:#0B8058;margin-top:12px;line-height:1.7}
+code{background:#F0F2F5;padding:2px 6px;border-radius:5px;font-size:12px;
+font-family:ui-monospace,Menlo,Consolas,monospace}
+.out{margin-top:14px;padding:14px;background:#1B2330;color:#9AE6C1;border-radius:11px;
+font-family:ui-monospace,Menlo,Consolas,monospace;font-size:12px;white-space:pre-wrap;
+max-height:260px;overflow:auto;display:none;line-height:1.6}
+.hide{display:none}
+</style>
+</head>
+<body>
+
+<div class="top">
+  <h1>账号配置器</h1>
+  <p>把演示账号换成机构真实账号 —— 填表、选文件、下载，三步完成</p>
+</div>
+
+<div class="wrap">
+
+<!-- 1 上传 -->
+<div class="box">
+  <h2><span class="sn">1</span>选择网页文件</h2>
+  <p class="d">选你本地的 <code>index.html</code>（成品包 site 文件夹里那个）</p>
+  <div class="file" id="fbox" onclick="document.getElementById('fin').click()">
+    <div class="ic">⬆</div>
+    <div id="fname" style="font-size:13.5px;margin-top:6px;color:#5A6675">点击选择 index.html</div>
+  </div>
+  <input type="file" id="fin" accept=".html" class="hide" onchange="loadFile(this)">
+  <div id="fmsg"></div>
+</div>
+
+<!-- 2 机构信息 -->
+<div class="box">
+  <h2><span class="sn">2</span>机构信息</h2>
+  <p class="d">会显示在登录后的页面里</p>
+  <div class="row">
+    <div><label>机构 / 总站名称</label><input id="orgName" value="白仓镇民政社工站"></div>
+    <div><label>下属站点（逗号分隔）</label><input id="sites" value="白仓社区服务点,四峰社区服务点,胜利村服务点,坦湾村服务点"></div>
+  </div>
+</div>
+
+<!-- 3 账号 -->
+<div class="box">
+  <h2><span class="sn">3</span>账号名单</h2>
+  <p class="d">工号和手机号都可用于登录。密码默认统一，也可单独设置</p>
+  <table>
+    <thead><tr>
+      <th style="width:15%">姓名</th><th style="width:15%">工号</th><th style="width:18%">手机号</th>
+      <th style="width:17%">角色</th><th style="width:22%">所属站点</th><th style="width:9%">资质</th><th></th>
+    </tr></thead>
+    <tbody id="tb"></tbody>
+  </table>
+  <button class="add" onclick="addRow()">＋ 添加一行</button>
+
+  <div class="row" style="margin-top:16px">
+    <div><label>登录密码（统一）</label>
+      <input id="pwd" type="text" value="" placeholder="请输入机构统一初始密码">
+    </div>
+    <div><label>密码规则</label>
+      <select id="pwdMode" onchange="togglePwd()">
+        <option value="one">所有人用同一个密码（简单，适合试点）</option>
+        <option value="each">每人单独密码（在表格里逐人填）</option>
+      </select>
+    </div>
+  </div>
+  <div id="pwdTip" class="warn" style="margin-top:8px"></div>
+</div>
+
+<!-- 4 登录方式 -->
+<div class="box">
+  <h2><span class="sn">4</span>登录方式与安全</h2>
+  <p class="d">正式环境建议关掉短信登录和快捷登录卡</p>
+
+  <label class="chk" onclick="">
+    <input type="checkbox" id="hideDemo" checked>
+    <div><div class="t">隐藏登录页的「快捷登录卡」</div>
+      <div class="s">关掉后登录页只留账号密码框，不会再有一键登录的演示入口</div></div>
+  </label>
+
+  <label class="chk">
+    <input type="checkbox" id="hideSms" checked>
+    <div><div class="t">关闭短信验证码登录</div>
+      <div class="s">纯前端无法真正发短信和校验验证码，保留只是演示效果</div></div>
+  </label>
+
+  <label class="chk">
+    <input type="checkbox" id="noPrefill" checked>
+    <div><div class="t">密码框不预填</div>
+      <div class="s">现在打开登录页密码已经填好了，正式环境应留空</div></div>
+  </label>
+
+  <div class="danger"><b>必须知道的安全边界：</b><br>
+  这是纯前端网页，<b>没有服务器校验</b>。配置器会把密码做哈希后再写入，
+  源码里看不到明文，但任何懂技术的人仍可绕过。<br>
+  它适合<b>机构内部试用、试点验证</b>；
+  涉及真实服务对象敏感信息、需要正式上线时，必须接入后端账号系统
+  （见下方「下一步」）。</div>
+</div>
+
+<!-- 5 生成 -->
+<div class="box">
+  <h2><span class="sn">5</span>生成并下载</h2>
+  <p class="d">下载后上传到腾讯云 COS，覆盖原来的 index.html 即可</p>
+  <button class="btn" id="genBtn" onclick="generate()" disabled>生成新的 index.html</button>
+  <button class="btn gray" onclick="clearAll()">重新填写</button>
+  <div class="out" id="out"></div>
+</div>
+
+<div class="box">
+  <h2>下一步：想要真正的账号体系</h2>
+  <p class="d">需要二次开发，这里给方向，不用现在做</p>
+  <table>
+    <tr><th style="width:26%">方案</th><th>说明</th></tr>
+    <tr><td><b>接后端 API</b></td>
+      <td>把登录请求改成调用你们的服务器接口，密码校验在服务端做，
+      返回 token 后再进入首页。这是标准做法。</td></tr>
+    <tr><td><b>接机构统一认证</b></td>
+      <td>如果单位已有 OA / 政务统一身份认证，走 OAuth 或 CAS 对接，
+      社工用工号直接登录，不用另设密码。</td></tr>
+    <tr><td><b>接微信企业号</b></td>
+      <td>社工都在微信里，用企业微信扫码登录最省事，
+      也便于后续消息推送。</td></tr>
+  </table>
+  <div class="ok">需要我出一份<b>登录接口对接方案</b>（接口定义、字段、时序图），
+  可以直接交给开发 —— 说一声就做。</div>
+</div>
+
+</div>
+
+<script>
+let SRC = '';
+
+const ROLES = [
+  ['worker','一线社工','#0E9F6E','#3ecf9a'],
+  ['lead','站点负责人','#2F6BFF','#6F9BFF'],
+  ['sv','专业督导','#7C5CFF','#A48CFF'],
+  ['org','机构管理者','#FF8A3D','#FFB13D']
+];
+
+function roleOptions(sel){
+  return ROLES.map(r=>`<option value="${r[0]}"${r[0]===sel?' selected':''}>${r[1]}</option>`).join('');
+}
+
+function addRow(d){
+  d = d || {name:'',no:'',phone:'',role:'worker',site:'',cert:'助理社工师',pwd:''};
+  const tr = document.createElement('tr');
+  tr.innerHTML = `
+    <td><input value="${d.name}" placeholder="张三" class="c-name"></td>
+    <td><input value="${d.no}" placeholder="SW-001" class="c-no"></td>
+    <td><input value="${d.phone}" placeholder="13800138000" class="c-phone"></td>
+    <td><select class="c-role">${roleOptions(d.role)}</select></td>
+    <td><input value="${d.site}" placeholder所属站点" class="c-site"></td>
+    <td><input value="${d.cert}" class="c-cert"></td>
+    <td><button class="del" onclick="this.closest('tr').remove()">×</button></td>`;
+  document.getElementById('tb').appendChild(tr);
+}
+
+function togglePwd(){
+  const each = document.getElementById('pwdMode').value==='each';
+  document.getElementById('pwd').style.display = each?'none':'';
+  document.querySelectorAll('#tb tr').forEach(tr=>{
+    // 单独密码列：动态加/去
+    let td = tr.querySelector('.c-pwd');
+    if(each && !td){
+      const t = document.createElement('td');
+      t.innerHTML = '<input placeholder="单独密码" class="c-pwd">';
+      tr.insertBefore(t, tr.lastElementChild);
+    }else if(!each && td){
+      td.parentElement.removeChild(td);
+    }
+  });
+  document.getElementById('pwdTip').innerHTML = each
+    ? '为每人单独设密码。初始密码建议统一发放后<b>要求首次登录修改</b>。'
+    : '所有人用同一个密码，最简单，适合先跑试点。';
+}
+
+function loadFile(inp){
+  const f = inp.files[0];
+  if(!f) return;
+  const r = new FileReader();
+  r.onload = e=>{
+    SRC = e.target.result;
+    const okAcct = SRC.indexOf('const ACCOUNTS=')>=0;
+    const el = document.getElementById('fbox');
+    const nm = document.getElementById('fname');
+    const mg = document.getElementById('fmsg');
+    if(okAcct){
+      el.classList.add('on'); nm.textContent = f.name + '（已读取）';
+      mg.innerHTML = '<div class="ok" style="margin-top:10px">✓ 文件有效，找到账号配置，可以开始填写</div>';
+      document.getElementById('genBtn').disabled = false;
+    }else{
+      el.classList.remove('on'); nm.textContent = f.name;
+      mg.innerHTML = '<div class="danger" style="margin-top:10px">✗ 这个文件里没找到账号配置。<br>请确认选的是成品包 site 文件夹里的 index.html，不是别的网页。</div>';
+      document.getElementById('genBtn').disabled = true;
+    }
+  };
+  r.readAsText(f, 'utf-8');
+}
+
+function hash(s){
+  let h = 5389;
+  for(let i=0;i<s.length;i++) h = ((h<<5)+h+s.charCodeAt(i))>>>0;
+  return h.toString(36);
+}
+
+function esc(s){ return String(s).replace(/\\/g,'\\\\').replace(/'/g,"\\'").replace(/"/g,'&quot;'); }
+
+function collect(){
+  const rows = [];
+  document.querySelectorAll('#tb tr').forEach(tr=>{
+    const name = tr.querySelector('.c-name').value.trim();
+    const no = tr.querySelector('.c-no').value.trim();
+    if(!name || !no) return;
+    const p = tr.querySelector('.c-pwd');
+    rows.push({
+      name, no,
+      phone: tr.querySelector('.c-phone').value.trim(),
+      role: tr.querySelector('.c-role').value,
+      site: tr.querySelector('.c-site').value.trim(),
+      cert: tr.querySelector('.c-cert').value.trim(),
+      pwd: p ? p.value.trim() : ''
+    });
+  });
+  return rows;
+}
+
+function generate(){
+  const rows = collect();
+  if(!SRC){ alert('请先选择 index.html'); return; }
+  if(!rows.length){ alert('至少填一个账号（姓名和工号必填）'); return; }
+
+  const each = document.getElementById('pwdMode').value==='each';
+  const uniPwd = document.getElementById('pwd').value.trim();
+  if(!each && !uniPwd){ alert('请输入统一密码'); return; }
+  if(each && rows.some(r=>!r.pwd)){ alert('选择「每人单独密码」时，每行都要填密码'); return; }
+
+  const orgName = document.getElementById('orgName').value.trim();
+  const hideDemo = document.getElementById('hideDemo').checked;
+  const hideSms = document.getElementById('hideSms').checked;
+  const noPrefill = document.getElementById('noPrefill').checked;
+
+  // 构造 ACCOUNTS
+  let acct = 'const ACCOUNTS={\n';
+  rows.forEach((r,i)=>{
+    const R = ROLES.find(x=>x[0]===r.role) || ROLES[0];
+    const pwd = each ? r.pwd : uniPwd;
+    const site = r.site || (document.getElementById('sites').value.split(/[,，]/)[0]||'').trim();
+    acct += ` '${esc(r.no)}':{no:'${esc(r.no)}',name:'${esc(r.name)}',role:'${R[0]}',title:'${R[1]}',`
+         +  `org:'${esc(orgName)}',site:'${esc(site)}',phone:'${esc(r.phone)}',`
+         +  `cert:'${esc(r.cert)}',color:'${R[2]}',g2:'${R[3]}',pwd:'${hash(pwd)}'}`;
+    acct += (i<rows.length-1) ? ',\n' : '\n';
+  });
+  acct += '};';
+
+  let out = SRC;
+
+  // 1) 替换 ACCOUNTS 块
+  const re = /const ACCOUNTS=\{[\s\S]*?\n\};/;
+  if(!re.test(out)){ alert('没找到账号配置块，文件可能已被修改过'); return; }
+  out = out.replace(re, acct);
+
+  // 2) 注入哈希函数 + 改校验逻辑
+  if(out.indexOf('function _hp(')<0){
+    out = out.replace('const ROLE_HOME=',
+      'function _hp(s){let h=5389;for(let i=0;i<s.length;i++)h=((h<<5)+h+s.charCodeAt(i))>>>0;return h.toString(36);}\nconst ROLE_HOME=');
+  }
+  // 整段替换密码校验逻辑（含账号查找顺序，避免 u 未定义）
+  const pwdBlock = /const pw=document\.getElementById\('lg-pwd-input'\)\.value;[\s\S]*?name=u\.name;/;
+  const newBlock =
+    "    const pw=document.getElementById('lg-pwd-input').value;\n"
+  + "    if(!no){ lgErr('请输入工号或手机号'); return; }\n"
+  + "    if(!pw){ lgErr('请输入登录密码'); return; }\n"
+  + "    let u=ACCOUNTS[no];\n"
+  + "    if(!u){ for(const k in ACCOUNTS){ if(ACCOUNTS[k].phone===no) u=ACCOUNTS[k]; } }\n"
+  + "    if(!u || _hp(pw)!==u.pwd){ lgErr('工号或密码不正确，请重新输入'); return; }\n"
+  + "    name=u.name;";
+  if(pwdBlock.test(out)) out = out.replace(pwdBlock, newBlock);
+  else out = out.replace(/if\(pw!=='demo1234'\)\s*\{[\s\S]*?\}\s*return;\s*\}/, "if(_hp(pw)!=='__X__'){ lgErr('工号或密码不正确，请重新输入'); return; }");
+
+  // 3) 密码框预填
+  if(noPrefill){
+    out = out.replace(/<input id="lg-pwd-input"([^>]*)value="[^"]*"/,
+                      '<input id="lg-pwd-input"$1value=""');
+    out = out.replace(/<input id="lg-user"([^>]*)value="[^"]*"/,
+                      '<input id="lg-user"$1value=""');
+    out = out.replace(/<input id="lg-phone"([^>]*)value="[^"]*"/,
+                      '<input id="lg-phone"$1value=""');
+  }
+  out = out.replace(/document\.getElementById\('lg-pwd-input'\)\.value='[^']*';/g,
+                    "document.getElementById('lg-pwd-input').value='';");
+
+  // 4) 隐藏演示卡
+  if(hideDemo){
+    out = out.replace(/<div class="lg-demo">[\s\S]*?\n {6}<\/div>/, '<div class="lg-demo" style="display:none"></div>');
+  }
+
+  // 5) 关闭短信登录
+  if(hideSms){
+    // 隐藏整个登录方式切换器（只留账号密码登录）
+    out = out.replace(/<div class="lg-seg">/g, '<div class="lg-seg" style="display:none">');
+    out = out.replace(/<button class="lg-seg[^"]*"[^>]*>短信验证码<\/button>/g, '');
+    out = out.replace(/lgSend\(\)/g, 'lgSmsOff()');
+    if(out.indexOf('function lgSmsOff(')<0){
+      out = out.replace('function lgErr(',
+        "function lgSmsOff(){ lgErr('短信登录未启用，请使用工号和密码登录'); }\nfunction lgErr(");
+    }
+  }
+
+  // 6) 剩余的演示提示文案
+  out = out.replace(/演示环境统一密码为 demo1234[^']*/g, '');
+  out = out.replace(/（演示验证码：123456）/g, '');
+  out = out.replace(/toast\('验证码已发送至 '[^\n]*/, "toast('短信登录未启用');");
+
+  // 下载
+  const blob = new Blob([out], {type:'text/html;charset=utf-8'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'index.html';
+  a.click();
+
+  const o = document.getElementById('out');
+  o.style.display = 'block';
+  o.textContent =
+    '✓ 已生成并下载 index.html\n\n'
+    + '本次配置：\n'
+    + '  机构：' + orgName + '\n'
+    + '  账号数：' + rows.length + ' 个\n'
+    + '  密码方式：' + (each?'每人单独':'统一密码') + '\n'
+    + '  快捷登录卡：' + (hideDemo?'已隐藏':'保留') + '\n'
+    + '  短信登录：' + (hideSms?'已关闭':'保留') + '\n\n'
+    + '接下来：\n'
+    + '  1. 上传这个 index.html 到腾讯云 COS，覆盖原文件\n'
+    + '  2. 打开网页，用新工号和密码登录试试\n'
+    + '  3. 把账号密码发给社工\n\n'
+    + '提醒：老用户浏览器可能缓存了旧页面，让他们刷新一下（或改 sw.js 版本号）';
+}
+
+function clearAll(){
+  document.getElementById('tb').innerHTML='';
+  ['','',''].forEach(()=>{});
+  addRow({name:'',no:'',phone:'',role:'worker',site:'',cert:'助理社工师',pwd:''});
+}
+
+// 初始几行（简化版：仅 2 个账号）
+addRow({name:'李晓雯',no:'SW-0101',phone:'13800138002',role:'worker',site:'白仓社区服务点',cert:'助理社工师'});
+addRow({name:'周慧',no:'SV-0001',phone:'13800138004',role:'sv',site:'服务站督导组',cert:'高级社会工作师'});
+togglePwd();
+</script>
+</body>
+</html>
